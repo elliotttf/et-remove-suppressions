@@ -25,6 +25,7 @@ function remove_from_newsletter($newsletter, $email) {
   $request->Options = $options;
   $request->Objects = array($object);
 
+  // DANGER ZONE! Uncomment this when you're ready to go live for really realz.
   //$result = ExactTarget::instance()->delete($request);
   //print_r($result);
 }
