@@ -10,14 +10,48 @@ function getTitle($nid) {
   return $newsletters[$nid];
 }
 
+function et_send_removals() {
+  $m = new Mongo();
+  $db = $m->selectDB('et');
+  $x = 0;
+  $objects = array();
+
+  $cursor = $db->supressions->find();
+  foreach ($cursor as $doc) {
+    $mail = $doc['mail'];
+    $u_newsletters = array();
+    foreach ($doc as $k => $v) {
+      if (is_numeric($k) && $v === TRUE) {
+        $objects[] = remove_from_newsletter($k, $mail);
+        $u_newsletters[] = getTitle($k);
+      }
+    }
+
+    if (count($u_newsletters)) {
+      echo 'Removing ' . $mail . ' from: ' . implode(', ', $u_newsletters);
+    }
+
+    // After we've collected 20 documents, batch them up and send the API request.
+    if ($x != 0 && $x % 20 == 0) {
+      $request = new ExactTarget_DeleteRequest();
+      $options = new ExactTarget_DeleteOptions();
+      $options->RequestType = ExactTarget_RequestType::Asynchronous;
+
+      $request->Options = $options;
+      $request->Objects = $objects;
+
+      $objects = array();
+
+print_r($request);
+      // DANGER ZONE! Uncomment this when you're ready to go live for really realz.
+      //$result = ExactTarget::instance()->delete($request);
+      //print_r($result);
+    }
+    $x++;
+  }
+}
+
 function remove_from_newsletter($newsletter, $email) {
-  // Write what we're doing to the screen.
-  echo 'Removing ' . $email . ' from ' . getTitle($newsletter) . PHP_EOL;
-
-  $request = new ExactTarget_DeleteRequest();
-  $options = new ExactTarget_DeleteOptions();
-  $options->RequestType = ExactTarget_RequestType::Asynchronous;
-
   $client = new ExactTarget_ClientID();
   $client->ID = EC_EXACT_TARGET_CLIENT_ID;
 
@@ -31,23 +65,15 @@ function remove_from_newsletter($newsletter, $email) {
   $prop->Value = $email;
   $object->Keys[] = $prop;
 
-  $object = ExactTarget::encode($object, 'DataExtensionObject');
-
-  $request->Options = $options;
-  $request->Objects = array($object);
-
-  // TODO - batch this shit!
-  // DANGER ZONE! Uncomment this when you're ready to go live for really realz.
-  //$result = ExactTarget::instance()->delete($request);
-  //print_r($result);
+  return ExactTarget::encode($object, 'DataExtensionObject');
 }
 
 function et_remove_suppressions($sup_list, $newsletter = NULL, $request_id = NULL) {
   if ($newsletter == NULL) {
-    echo 'Removing users on ' . $sup_list . ' from all lists' . PHP_EOL;
+    echo 'Collecting users on ' . $sup_list . ' to be removed from all lists' . PHP_EOL;
   }
   else {
-    echo 'Removing users on ' . $sup_list . ' from ' . getTitle($newsletter) . PHP_EOL;
+    echo 'Collecting users on ' . $sup_list . ' to be removed from ' . getTitle($newsletter) . PHP_EOL;
   }
   $m = new Mongo();
   $db = $m->selectDB('et');
@@ -146,4 +172,7 @@ et_remove_suppressions('The Economist Debates - Suppression List', 21016211);
 et_remove_suppressions('Gullivers best Unsubscribes', 21016210);
 et_remove_suppressions('Gullvers best - Exclusion List', 21016210);
 et_remove_suppressions('Gullivers best - Suppression List', 21016210);
+
+// Send the API calls for all the removals.
+et_send_removals();
 
