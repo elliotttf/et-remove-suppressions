@@ -1,7 +1,17 @@
 <?php
 
+function getTitle($nid) {
+  static $newsletters = array();
+
+  if (!isset($newsletters[$nid])) {
+    $newsletters[$nid] = db_result(db_query("SELECT title FROM node WHERE nid=%d", $nid));
+  }
+
+  return $newsletters[$nid];
+}
+
 function remove_from_newsletter($newsletter, $email) {
-  echo 'Removing ' . $email . ' from ' . $newsletter . PHP_EOL;
+  echo 'Removing ' . $email . ' from ' . getTitle($newsletter) . PHP_EOL;
 
   $request = new ExactTarget_DeleteRequest();
   $options = new ExactTarget_DeleteOptions();
@@ -66,6 +76,10 @@ function et_remove_suppressions($sup_list, $newsletter, $request_id = NULL) {
   else {
     print_r('ERROR! ' . $results->OverallStatus);
   }
+
+  // Try to free up some memory.
+  unset($results->Results);
+
   if ($results->OverallStatus == 'MoreDataAvailable') {
     et_remove_suppressions($sup_list, $newsletter, $results->RequestID);
   }
@@ -77,3 +91,10 @@ et_remove_suppressions('Gullvers best - Exclusion List', 21016210);
 et_remove_suppressions('Global Suppression List', 21016210);
 et_remove_suppressions('Newsletter Status - Mature Inactive', 21016210);
 et_remove_suppressions('Gullivers best - Suppression List', 21016210);
+
+// Remove users from New on TEo
+et_remove_suppressions('New on TEo - Unsubscribe Exclusion List', 21016204);
+et_remove_suppressions('Global Suppression List', 21016204);
+et_remove_suppressions('Newsletter Status - Mature Inactive', 21016204);
+et_remove_suppressions('New on The Economist online - Suppression List', 21016204);
+
