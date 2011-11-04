@@ -120,15 +120,31 @@ function et_remove_suppressions($sup_list, $newsletter = NULL, $request_id = NUL
 
 // Global suppression is special since it applies to all lists.
 et_remove_suppressions('Global Suppression List');
+et_remove_suppressions('Newsletter Status - Mature Inactive');
+
+// Remove users from Editor's Highlights newsletter.
+et_remove_suppressions('Editors highlights - Exclusion List', 21016205);
+et_remove_suppressions('Editors highlights - Suppression List', 21016205);
+
+// Remove users from Politics this week newsletter.
+et_remove_suppressions('Politics this week - Suppression List', 21016208);
+
+// Remove users from Business this week newsletter.
+et_remove_suppressions('Business this week - Suppression List', 21016209);
+
+// Remove users from New on TEo newsletter.
+et_remove_suppressions('New on TEo - Unsubscribe Exclusion List', 21016204);
+et_remove_suppressions('New on The Economist online - Suppression List', 21016204);
+
+// Remove users from Management thinking newsletter.
+et_remove_suppressions('Management thinking - Suppression List', 21016207);
+
+// Remove users from The Economist debates newsletter.
+et_remove_suppressions('The Economist Debates - Suppression List', 21016211);
 
 // Remove users from Gulliver's Best newsletter.
 et_remove_suppressions('Gullivers best Unsubscribes', 21016210);
 et_remove_suppressions('Gullvers best - Exclusion List', 21016210);
 et_remove_suppressions('Newsletter Status - Mature Inactive', 21016210);
 et_remove_suppressions('Gullivers best - Suppression List', 21016210);
-
-// Remove users from New on TEo
-et_remove_suppressions('New on TEo - Unsubscribe Exclusion List', 21016204);
-et_remove_suppressions('Newsletter Status - Mature Inactive', 21016204);
-et_remove_suppressions('New on The Economist online - Suppression List', 21016204);
 
