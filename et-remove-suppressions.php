@@ -145,6 +145,5 @@ et_remove_suppressions('The Economist Debates - Suppression List', 21016211);
 // Remove users from Gulliver's Best newsletter.
 et_remove_suppressions('Gullivers best Unsubscribes', 21016210);
 et_remove_suppressions('Gullvers best - Exclusion List', 21016210);
-et_remove_suppressions('Newsletter Status - Mature Inactive', 21016210);
 et_remove_suppressions('Gullivers best - Suppression List', 21016210);
 
