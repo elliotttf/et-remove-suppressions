@@ -70,10 +70,10 @@ function remove_from_newsletter($newsletter, $email) {
 
 function et_remove_suppressions($sup_list, $newsletter = NULL, $request_id = NULL) {
   if ($newsletter == NULL) {
-    echo 'Collecting users on ' . $sup_list . ' to be removed from all lists' . PHP_EOL;
+    //echo 'Collecting users on ' . $sup_list . ' to be removed from all lists' . PHP_EOL;
   }
   else {
-    echo 'Collecting users on ' . $sup_list . ' to be removed from ' . getTitle($newsletter) . PHP_EOL;
+    //echo 'Collecting users on ' . $sup_list . ' to be removed from ' . getTitle($newsletter) . PHP_EOL;
   }
   $m = new Mongo();
   $db = $m->selectDB('et');
@@ -93,30 +93,33 @@ function et_remove_suppressions($sup_list, $newsletter = NULL, $request_id = NUL
       $results->Results = array($results->Results);
     }
     foreach ($results->Results as $result) {
+      $newsletters = array(
+        21016203 => FALSE,
+        21016204 => FALSE,
+        21016205 => FALSE,
+        21016206 => FALSE,
+        21016207 => FALSE,
+        21016208 => FALSE,
+        21016209 => FALSE,
+        21016210 => FALSE,
+        21016211 => FALSE,
+      );
       // Deal with more SOAP bullshit.
       if (is_object($result->Properties->Property)) {
         $result->Properties->Property = array($result->Properties->Property);
       }
       // Find the right property.
       foreach ($result->Properties->Property as $prop) {
-        $newsletters = array(
-          21016203 => FALSE,
-          21016204 => FALSE,
-          21016205 => FALSE,
-          21016206 => FALSE,
-          21016207 => FALSE,
-          21016208 => FALSE,
-          21016209 => FALSE,
-          21016210 => FALSE,
-          21016211 => FALSE,
-        );
         if ($prop->Name == 'Email Address') {
+          while (!lock_acquire('et_remove:' . $prop->Value)) {
+            sleep(1);
+          }
           if ($newsletter == NULL) {
             $keys = array_keys($newsletters);
             // Mature inactive affects all lists EXCEPT BTW and PTW.
             if ($sup_list == 'Newsletter Status - Mature Inactive') {
               // If the user already exists make sure we're not going to nuke anything.
-              $obj = $db->suppressions->findOne(array('mail' => $prop->Value));
+              $obj = $db->suppressions2->findOne(array('mail' => $prop->Value));
               if ($obj != NULL) {
                 if (isset($obj[21016208]) && $obj[21016208] === FALSE) {
                   unset($keys[21016208]);
@@ -134,7 +137,7 @@ function et_remove_suppressions($sup_list, $newsletter = NULL, $request_id = NUL
           }
           else {
             // Pull out the values we already stored so we don't overwrite them.
-            $obj = $db->suppressions->findOne(array('mail' => $prop->Value));
+            $obj = $db->suppressions2->findOne(array('mail' => $prop->Value));
             if ($obj != NULL) {
               foreach ($obj as $k => $v) {
                 if (is_numeric($k)) {
@@ -144,7 +147,8 @@ function et_remove_suppressions($sup_list, $newsletter = NULL, $request_id = NUL
             }
             $newsletters[$newsletter] = TRUE;
           }
-          $db->suppressions->update(array('mail' => $prop->Value), array('$set' => $newsletters), array('upsert' => TRUE));
+          $db->suppressions2->update(array('mail' => $prop->Value), array('$set' => $newsletters), array('upsert' => TRUE));
+          lock_release('et_remove:' . $prop->Value);
           break;
         }
       }
@@ -162,34 +166,75 @@ function et_remove_suppressions($sup_list, $newsletter = NULL, $request_id = NUL
   }
 }
 
-// Global suppression is special since it applies to all lists.
-et_remove_suppressions('Global Suppression List');
-et_remove_suppressions('Newsletter Status - Mature Inactive');
+$suppressions = array(
+  1 => array(
+    'name' => 'Global Suppression List',
+    'nid' => NULL,
+  ),
+  2 => array(
+    'name' => 'Newsletter Status - Mature Inactive',
+    'nid' => NULL
+  ),
+  3 => array(
+    'name' => 'Editors highlights - Exclusion List', 
+    'nid' => 21016205
+  ),
+  4 => array(
+    'name' => 'Editors highlights - Suppression List',
+    'nid' => 21016205
+  ),
+  5 => array(
+    'name' => 'Politics this week - Suppression List',
+    'nid' => 21016208
+  ),
+  6 => array(
+    'name' => 'Business this week - Suppression List',
+    'nid' => 21016209
+  ),
+  7 => array(
+    'name' => 'New on TEo - Unsubscribe Exclusion List',
+    'nid' => 21016204
+  ),
+  8 => array(
+    'name' => 'New on The Economist online - Suppression List',
+    'nid' => 21016204
+  ),
+  9 => array(
+    'name' => 'Management thinking - Suppression List',
+    'nid' => 21016207
+  ),
+  10 => array(
+    'name' => 'The Economist Debates - Suppression List',
+    'nid' => 21016211
+  ),
+  11 => array(
+    'name' => 'Gullivers best Unsubscribes',
+    'nid' => 21016210
+  ),
+  12 => array(
+    'name' => 'Gullvers best - Exclusion List',
+    'nid' => 21016210
+  ),
+  13 => array(
+    'name' => 'Gullivers best - Suppression List',
+    'nid' => 21016210
+  ),
+);
 
-// Remove users from Editor's Highlights newsletter.
-et_remove_suppressions('Editors highlights - Exclusion List', 21016205);
-et_remove_suppressions('Editors highlights - Suppression List', 21016205);
-
-// Remove users from Politics this week newsletter.
-et_remove_suppressions('Politics this week - Suppression List', 21016208);
-
-// Remove users from Business this week newsletter.
-et_remove_suppressions('Business this week - Suppression List', 21016209);
-
-// Remove users from New on TEo newsletter.
-et_remove_suppressions('New on TEo - Unsubscribe Exclusion List', 21016204);
-et_remove_suppressions('New on The Economist online - Suppression List', 21016204);
-
-// Remove users from Management thinking newsletter.
-et_remove_suppressions('Management thinking - Suppression List', 21016207);
-
-// Remove users from The Economist debates newsletter.
-et_remove_suppressions('The Economist Debates - Suppression List', 21016211);
-
-// Remove users from Gulliver's Best newsletter.
-et_remove_suppressions('Gullivers best Unsubscribes', 21016210);
-et_remove_suppressions('Gullvers best - Exclusion List', 21016210);
-et_remove_suppressions('Gullivers best - Suppression List', 21016210);
+foreach ($suppressions as $k => $v) {
+  switch ($pid = pcntl_fork()) {
+    case -1:
+      exit(1);
+    case 0:
+      echo "Starting process for collecting " . $v['name'];
+      et_remove_suppressions($v['name'], $v['nid']);
+      break;
+    default:
+      pcntl_waitpid($pid, $status);
+      echo 'Finished collecting ' . $v['name'] . PHP_EOL;
+      break;
+  }
+}
 
 // Send the API calls for all the removals.
 et_send_removals();
