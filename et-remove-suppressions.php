@@ -42,11 +42,15 @@ function remove_from_newsletter($newsletter, $email) {
   //print_r($result);
 }
 
-function et_remove_suppressions($sup_list, $newsletter, $request_id = NULL) {
-  $out = fopen(__DIR__ . DIRECTORY_SEPARATOR . 'out' . DIRECTORY_SEPARATOR . $newsletter . '.out', $request_id == NULL ? 'w' : 'a');
-  if ($request_id == NULL) {
-    fputcsv($out, array('email', 'newsletter nid'));
+function et_remove_suppressions($sup_list, $newsletter = NULL, $request_id = NULL) {
+  if ($newsletter == NULL) {
+    echo 'Removing users on ' . $sup_list . ' from all lists' . PHP_EOL;
   }
+  else {
+    echo 'Removing users on ' . $sup_list . ' from ' . getTitle($newsletter) . PHP_EOL;
+  }
+  $m = new Mongo();
+  $db = $m->selectDB('et');
 
   $properties = array('Email Address');
   $results = ETUtils::instance()->search(
@@ -59,34 +63,53 @@ function et_remove_suppressions($sup_list, $newsletter, $request_id = NULL) {
   );
   if ($results->OverallStatus == 'OK' || $results->OverallStatus == 'MoreDataAvailable') {
     // SOAP sucks balls and sometimes returns a single object rather than an array.
-    if (is_array($results->Results)) {
-      foreach ($results->Results as $result) {
-        // Find the right property.
-        foreach ($result->Properties as $prop) {
-          if ($prop->Name == 'Email Address') {
-            remove_from_newsletter($newsletter, $prop->Value);
-            fputcsv($out, array($prop->Value, $newsletter));
-            break;
-          }
-        }
-      }
+    if (is_object($results->Results)) {
+      $results->Results = array($results->Results);
     }
-    else {
+    foreach ($results->Results as $result) {
+      // Deal with more SOAP bullshit.
+      if (is_object($result->Properties->Property)) {
+        $result->Properties->Property = array($result->Properties->Property);
+      }
       // Find the right property.
-      foreach ($result->Properties as $prop) {
+      foreach ($result->Properties->Property as $prop) {
+        $newsletters = array(
+          21016203 => FALSE,
+          21016204 => FALSE,
+          21016205 => FALSE,
+          21016206 => FALSE,
+          21016207 => FALSE,
+          21016208 => FALSE,
+          21016209 => FALSE,
+          21016210 => FALSE,
+          21016211 => FALSE,
+        );
         if ($prop->Name == 'Email Address') {
-          remove_from_newsletter($newsletter, $prop->Value);
-          fputcsv($out, array($prop->Value, $newsletter));
+          if ($newsletter == NULL) {
+            $newsletters = array_fill_keys(array_keys($newsletters), TRUE);
+          }
+          else {
+            // Pull out the values we already stored so we don't overwrite them.
+            $obj = $db->suppressions->findOne(array('mail' => $prop->Value));
+            if ($obj != NULL) {
+              foreach ($obj as $k => $v) {
+                if (is_numeric($k)) {
+                  $newsletters[$k] = $v;
+                }
+              }
+            }
+            $newsletters[$newsletter] = TRUE;
+          }
+          $db->suppressions->update(array('mail' => $prop->Value), array('$set' => $newsletters), array('upsert' => TRUE));
           break;
         }
       }
     }
   }
   else {
-    print_r('ERROR! ' . $results->OverallStatus);
+    echo 'ERROR! ' . $results->OverallStatus . PHP_EOL;
   }
 
-  fclose($out);
   // Try to free up some memory.
   unset($results->Results);
 
@@ -95,16 +118,17 @@ function et_remove_suppressions($sup_list, $newsletter, $request_id = NULL) {
   }
 }
 
+// Global suppression is special since it applies to all lists.
+et_remove_suppressions('Global Suppression List');
+
 // Remove users from Gulliver's Best newsletter.
 et_remove_suppressions('Gullivers best Unsubscribes', 21016210);
 et_remove_suppressions('Gullvers best - Exclusion List', 21016210);
-et_remove_suppressions('Global Suppression List', 21016210);
 et_remove_suppressions('Newsletter Status - Mature Inactive', 21016210);
 et_remove_suppressions('Gullivers best - Suppression List', 21016210);
 
 // Remove users from New on TEo
 et_remove_suppressions('New on TEo - Unsubscribe Exclusion List', 21016204);
-et_remove_suppressions('Global Suppression List', 21016204);
 et_remove_suppressions('Newsletter Status - Mature Inactive', 21016204);
 et_remove_suppressions('New on The Economist online - Suppression List', 21016204);
 
