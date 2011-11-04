@@ -4,7 +4,7 @@ function getTitle($nid) {
   static $newsletters = array();
 
   if (!isset($newsletters[$nid])) {
-    $newsletters[$nid] = db_result(db_query("SELECT title FROM node WHERE nid=%d", $nid));
+    $newsletters[$nid] = db_result(db_query("SELECT title FROM {node} WHERE nid=%d", $nid));
   }
 
   return $newsletters[$nid];
@@ -112,6 +112,24 @@ function et_remove_suppressions($sup_list, $newsletter = NULL, $request_id = NUL
         );
         if ($prop->Name == 'Email Address') {
           if ($newsletter == NULL) {
+            $keys = array_keys($newsletters);
+            // Mature inactive affects all lists EXCEPT BTW and PTW.
+            if ($sup_list == 'Newsletter Status - Mature Inactive') {
+              // If the user already exists make sure we're not going to nuke anything.
+              $obj = $db->suppressions->findOne(array('mail' => $prop->Value));
+              if ($obj != NULL) {
+                if (isset($obj[21016208]) && $obj[21016208] === FALSE) {
+                  unset($keys[21016208]);
+                }
+                if (isset($obj[21016209]) && $obj[21016209] === FALSE) {
+                  unset($keys[21016209]);
+                }
+              }
+              else {
+                unset($keys[21016208]);
+                unset($keys[21016209]);
+              }
+            }
             $newsletters = array_fill_keys(array_keys($newsletters), TRUE);
           }
           else {
