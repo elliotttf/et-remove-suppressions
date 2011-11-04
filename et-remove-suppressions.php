@@ -160,7 +160,7 @@ function et_remove_suppressions($sup_list, $newsletter = NULL, $request_id = NUL
 }
 
 // Global suppression is special since it applies to all lists.
-//et_remove_suppressions('Global Suppression List');
+et_remove_suppressions('Global Suppression List');
 et_remove_suppressions('Newsletter Status - Mature Inactive');
 
 // Remove users from Editor's Highlights newsletter.
