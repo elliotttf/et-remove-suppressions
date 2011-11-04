@@ -11,6 +11,7 @@ function getTitle($nid) {
 }
 
 function remove_from_newsletter($newsletter, $email) {
+  // Write what we're doing to the screen.
   echo 'Removing ' . $email . ' from ' . getTitle($newsletter) . PHP_EOL;
 
   $request = new ExactTarget_DeleteRequest();
@@ -35,12 +36,18 @@ function remove_from_newsletter($newsletter, $email) {
   $request->Options = $options;
   $request->Objects = array($object);
 
+  // TODO - batch this shit!
   // DANGER ZONE! Uncomment this when you're ready to go live for really realz.
   //$result = ExactTarget::instance()->delete($request);
   //print_r($result);
 }
 
 function et_remove_suppressions($sup_list, $newsletter, $request_id = NULL) {
+  $out = fopen(__DIR__ . DIRECTORY_SEPARATOR . 'out' . DIRECTORY_SEPARATOR . $newsletter . '.out', $request_id == NULL ? 'w' : 'a');
+  if ($request_id == NULL) {
+    fputcsv($out, array('email', 'newsletter nid'));
+  }
+
   $properties = array('Email Address');
   $results = ETUtils::instance()->search(
     'DataExtensionObject[' . $sup_list . ']',
@@ -58,6 +65,7 @@ function et_remove_suppressions($sup_list, $newsletter, $request_id = NULL) {
         foreach ($result->Properties as $prop) {
           if ($prop->Name == 'Email Address') {
             remove_from_newsletter($newsletter, $prop->Value);
+            fputcsv($out, array($prop->Value, $newsletter));
             break;
           }
         }
@@ -68,6 +76,7 @@ function et_remove_suppressions($sup_list, $newsletter, $request_id = NULL) {
       foreach ($result->Properties as $prop) {
         if ($prop->Name == 'Email Address') {
           remove_from_newsletter($newsletter, $prop->Value);
+          fputcsv($out, array($prop->Value, $newsletter));
           break;
         }
       }
@@ -77,6 +86,7 @@ function et_remove_suppressions($sup_list, $newsletter, $request_id = NULL) {
     print_r('ERROR! ' . $results->OverallStatus);
   }
 
+  fclose($out);
   // Try to free up some memory.
   unset($results->Results);
 
