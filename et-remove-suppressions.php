@@ -70,10 +70,10 @@ function remove_from_newsletter($newsletter, $email) {
 
 function et_remove_suppressions($sup_list, $newsletter = NULL, $request_id = NULL) {
   if ($newsletter == NULL) {
-    echo 'Collecting users on ' . $sup_list . ' to be removed from all lists' . PHP_EOL;
+    echo 'Collecting users on "' . $sup_list . '" to be removed from all lists' . PHP_EOL;
   }
   else {
-    echo 'Collecting users on ' . $sup_list . ' to be removed from ' . getTitle($newsletter) . PHP_EOL;
+    echo 'Collecting users on "' . $sup_list . '" to be removed from "' . getTitle($newsletter) . '"' . PHP_EOL;
   }
   $m = new Mongo();
   $db = $m->selectDB('et');
@@ -93,44 +93,41 @@ function et_remove_suppressions($sup_list, $newsletter = NULL, $request_id = NUL
       $results->Results = array($results->Results);
     }
     foreach ($results->Results as $result) {
+      $newsletters = array(
+        21016203 => FALSE,
+        21016204 => FALSE,
+        21016205 => FALSE,
+        21016206 => FALSE,
+        21016207 => FALSE,
+        21016208 => FALSE,
+        21016209 => FALSE,
+        21016210 => FALSE,
+        21016211 => FALSE,
+      );
       // Deal with more SOAP bullshit.
       if (is_object($result->Properties->Property)) {
         $result->Properties->Property = array($result->Properties->Property);
       }
       // Find the right property.
       foreach ($result->Properties->Property as $prop) {
-        $newsletters = array(
-          21016203 => FALSE,
-          21016204 => FALSE,
-          21016205 => FALSE,
-          21016206 => FALSE,
-          21016207 => FALSE,
-          21016208 => FALSE,
-          21016209 => FALSE,
-          21016210 => FALSE,
-          21016211 => FALSE,
-        );
         if ($prop->Name == 'Email Address') {
           if ($newsletter == NULL) {
-            $keys = array_keys($newsletters);
+            $newsletters = array_fill_keys(array_keys($newsletters), TRUE);
             // Mature inactive affects all lists EXCEPT BTW and PTW.
             if ($sup_list == 'Newsletter Status - Mature Inactive') {
+              $newsletters[21016208] = FALSE;
+              $newsletters[21016209] = FALSE;
               // If the user already exists make sure we're not going to nuke anything.
               $obj = $db->suppressions->findOne(array('mail' => $prop->Value));
               if ($obj != NULL) {
-                if (isset($obj[21016208]) && $obj[21016208] === FALSE) {
-                  unset($keys[21016208]);
+                if (isset($obj[21016208]) && $obj[21016208] === TRUE) {
+                  $newsletters[21016208] = TRUE;
                 }
-                if (isset($obj[21016209]) && $obj[21016209] === FALSE) {
-                  unset($keys[21016209]);
+                if (isset($obj[21016209]) && $obj[21016209] === TRUE) {
+                  $newsletters[21016209] = TRUE;
                 }
-              }
-              else {
-                unset($keys[21016208]);
-                unset($keys[21016209]);
               }
             }
-            $newsletters = array_fill_keys(array_keys($newsletters), TRUE);
           }
           else {
             // Pull out the values we already stored so we don't overwrite them.
@@ -163,7 +160,7 @@ function et_remove_suppressions($sup_list, $newsletter = NULL, $request_id = NUL
 }
 
 // Global suppression is special since it applies to all lists.
-et_remove_suppressions('Global Suppression List');
+//et_remove_suppressions('Global Suppression List');
 et_remove_suppressions('Newsletter Status - Mature Inactive');
 
 // Remove users from Editor's Highlights newsletter.
