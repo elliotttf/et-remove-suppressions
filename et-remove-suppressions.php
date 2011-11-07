@@ -43,7 +43,6 @@ function et_send_removals() {
 
       $objects = array();
 
-print_r($request);
       // DANGER ZONE! Uncomment this when you're ready to go live for really realz.
       /*
       $result = ExactTarget::instance()->delete($request);
