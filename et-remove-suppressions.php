@@ -157,6 +157,9 @@ function et_remove_suppressions($sup_list, $newsletter = NULL, $request_id = NUL
   }
   else {
     echo 'ERROR! ' . $results->OverallStatus . PHP_EOL;
+    // Trick the system into retrying the request.
+    $results->RequestID = $request_id;
+    $results->OverallStatus = 'MoreDataAvailable';
   }
 
   // Try to free up some memory.
