@@ -14,11 +14,12 @@ function et_send_removals() {
   $m = new Mongo();
   $db = $m->selectDB('et');
   $x = 0;
-  $objects = array();
+  $affected_mails = $objects = array();
 
-  $cursor = $db->supressions->find();
+  $cursor = $db->suppressions->find();
   foreach ($cursor as $doc) {
     $mail = $doc['mail'];
+    $affected_mails[] = $mail;
     $u_newsletters = array();
     foreach ($doc as $k => $v) {
       if (is_numeric($k) && $v === TRUE) {
@@ -28,14 +29,14 @@ function et_send_removals() {
     }
 
     if (count($u_newsletters)) {
-      echo 'Removing ' . $mail . ' from: ' . implode(', ', $u_newsletters);
+      echo 'Removing ' . $mail . ' from:' . PHP_EOL . '  ' . implode(PHP_EOL . '  ', $u_newsletters) . PHP_EOL;
     }
 
     // After we've collected 20 documents, batch them up and send the API request.
     if ($x != 0 && $x % 20 == 0) {
       $request = new ExactTarget_DeleteRequest();
       $options = new ExactTarget_DeleteOptions();
-      $options->RequestType = ExactTarget_RequestType::Asynchronous;
+      $options->RequestType = ExactTarget_RequestType::Synchronous;
 
       $request->Options = $options;
       $request->Objects = $objects;
@@ -44,8 +45,16 @@ function et_send_removals() {
 
 print_r($request);
       // DANGER ZONE! Uncomment this when you're ready to go live for really realz.
-      //$result = ExactTarget::instance()->delete($request);
-      //print_r($result);
+      /*
+      $result = ExactTarget::instance()->delete($request);
+      if ($result->OverallStatus != 'OK') {
+        echo 'ERROR: ' . $result->OverallStatus . PHP_EOL;
+        echo '  There was a problem removing the following users from data extensions on ExactTarget:' . PHP_EOL . '    ' .
+          implode(PHP_EOL . '    ', $affected_mails) . PHP_EOL;
+        echo '  You should re-sync these users as soon as possible.' . PHP_EOL;
+      }
+      */
+      $affected_mails = array();
     }
     $x++;
   }
