@@ -149,7 +149,19 @@ function et_remove_suppressions($sup_list, $newsletter = NULL, $request_id = NUL
             }
             $newsletters[$newsletter] = TRUE;
           }
-          $db->suppressions->update(array('mail' => $prop->Value), array('$set' => $newsletters), array('upsert' => TRUE));
+
+          $count = 0;
+          $success = FALSE;
+          while ($count < 5 && !$success) {
+            try {
+              $db->suppressions->update(array('mail' => $prop->Value), array('$set' => $newsletters), array('upsert' => TRUE, 'safe' => TRUE));
+              $success = TRUE;
+            }
+            catch (MongoCursorException $e) {
+              echo 'ERROR: There was a problem writing to the database for user with mail: ' . $prop->Value . PHP_EOL;
+            }
+            $count++;
+          }
           break;
         }
       }
