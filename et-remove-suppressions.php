@@ -77,6 +77,21 @@ function remove_from_newsletter($newsletter, $email) {
 }
 
 function et_remove_suppressions($sup_list, $newsletter = NULL, $request_id = NULL) {
+  $de_map = array(
+    'Global Suppression List' => '4D400C30-25D0-4321-A4AE-D1FF2B7C32C6',
+    'Newsletter Status - Mature Inactive' => '2E8CCFA2-7EC9-4227-9188-95AEE3C1D081',
+    'Editors highlights - Exclusion List' => 'F16BA19A-E363-4976-B4F6-72D7071DCA4C',
+    'Editors highlights - Suppression List' => '69ECF034-E56A-4321-9005-8457D7D4327F',
+    'Politics this week - Suppression List' => '2385F94F-0AED-4B7B-A83E-C358E7CFA792',
+    'Business this week - Suppression List' => '4603EA33-22D5-480C-AD59-52C027A3FBEA',
+    'New on TEo - Unsubscribe Exclusion List' => '31D50BD0-090B-40FC-A504-F98DCE95A0D0',
+    'New on The Economist online - Suppression List' => 'C2DE85A4-79EE-4301-8B90-1805BF929324',
+    'Management thinking - Suppression List' => 'CB20ED2F-9615-4F62-9C8E-A3A40E9D2B6E',
+    'The Economist Debates - Suppression List' => '2E7CC02A-CFC1-40BC-B990-C357353691AB',
+    'Gullivers best Unsubscribes' => 'AE4FF5F7-1220-4B00-8749-D0EE9C7277AD',
+    'Gullvers best - Exclusion List' => '216BFA8B-E43E-464D-BB72-B5C5B4D6186E',
+    'Gullivers best - Suppression List' => '2642B4F6-BEC8-41C7-863D-FC503C87AAF4',
+  );
   if ($newsletter == NULL) {
     echo 'Collecting users on "' . $sup_list . '" to be removed from all lists' . PHP_EOL;
   }
@@ -147,7 +162,17 @@ function et_remove_suppressions($sup_list, $newsletter = NULL, $request_id = NUL
                 }
               }
             }
+
             $newsletters[$newsletter] = TRUE;
+          }
+
+          // Track which suppression list the user came from.
+          if ($obj != NULL && isset($obj['suppressed'])) {
+            $newsletters['suppressed'] = $obj['suppressed'];
+            $newsletters['suppressed'][] = $de_map[$sup_list];
+          }
+          else {
+            $newsletters['suppressed'] = array($de_map[$sup_list]);
           }
 
           $count = 0;
